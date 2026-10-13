@@ -3,8 +3,8 @@ rdr3_warning 'I acknowledge that this is a prerelease build of RedM, and I am aw
 game 'rdr3'
 lua54 'yes'
 
-description 'rsg-farming - plant, water, fertilise and harvest crops'
-version '3.0.0'
+description 'rsg-farming'
+version '3.0.1'
 
 shared_scripts {
     '@ox_lib/init.lua',

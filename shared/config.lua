@@ -110,11 +110,20 @@ Config.Crops = {
     cotton = {
         label = 'Cotton', seed = 'seedcotton', growTime = 60,
         stages = {
-            { from = 0,   prop = 'crp_cotton_ba_sim', zOffset = -1.0 },
-            { from = 50,  prop = 'crp_cotton_ba_sim', zOffset = -0.5 },
-            { from = 100, prop = 'crp_cotton_ba_sim', zOffset = 0.0 },
+            { from = 0,   prop = 'crp_cotton_bb_sim', zOffset = -1.0 },
+            { from = 50,  prop = 'crp_cotton_bb_sim', zOffset = -0.5 },
+            { from = 100, prop = 'crp_cotton_bb_sim', zOffset = 0.0 },
         },
         harvest = { { item = 'cotton', min = 2, max = 4 }, { item = 'seedcotton', min = 0, max = 1 } },
+    },
+    sugarcane = {
+        label = 'Sugarcane', seed = 'seedsugarcane', growTime = 60,
+        stages = {
+            { from = 0,   prop = 'crp_sugarcane_aa_sim', zOffset = 0.0 },
+            { from = 50,  prop = 'crp_sugarcane_ab_sim', zOffset = 0.0 },
+            { from = 100, prop = 'crp_sugarcane_ac_sim', zOffset = 0.0 },
+        },
+        harvest = { { item = 'sugarcane', min = 2, max = 4 }, { item = 'seedsugarcane', min = 0, max = 1 } },
     },
     weed = {
         label = 'Weed', seed = 'seedweed', growTime = 60,
