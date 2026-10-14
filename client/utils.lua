@@ -4,6 +4,7 @@ lib.locale()
 Utils = {
     busy     = false, -- one global busy flag so planting / pumps / tending can't overlap
     ownProps = {},    -- [entity] = true for props this resource spawned (never cleaned up as scenario props)
+    blockers = {},    -- [plant entity] = invisible collision blocker entity
 }
 
 function Utils.notify(desc, ntype)
@@ -73,11 +74,32 @@ function Utils.spawnProp(model, x, y, z, heading)
     FreezeEntityPosition(obj, true)
     SetModelAsNoLongerNeeded(hash)
     Utils.ownProps[obj] = true
+
+    -- custom streamed props with no collision get an invisible blocker at the same spot
+    if Config.CollisionProps and Config.CollisionProps[model] then
+        local bHash = Placement.LoadModel(Config.CollisionModel or 'p_invalid01x')
+        if bHash then
+            local blocker = CreateObject(bHash, x, y, z, false, false, false)
+            PlaceObjectOnGroundProperly(blocker)
+            SetEntityHeading(blocker, heading or 0.0)
+            FreezeEntityPosition(blocker, true)
+            SetEntityVisible(blocker, false, false)
+            SetModelAsNoLongerNeeded(bHash)
+            Utils.ownProps[blocker] = true
+            Utils.blockers[obj] = blocker
+        end
+    end
     return obj
 end
 
 function Utils.deleteProp(obj)
     if not obj then return end
     Utils.ownProps[obj] = nil
+    local blocker = Utils.blockers[obj]
+    if blocker then
+        Utils.blockers[obj] = nil
+        Utils.ownProps[blocker] = nil
+        if DoesEntityExist(blocker) then DeleteObject(blocker) end
+    end
     if DoesEntityExist(obj) then DeleteObject(obj) end
 end

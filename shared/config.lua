@@ -7,6 +7,13 @@ Config.Debug               = false
 Config.MaxPlantsPerPlayer  = 20      -- max active plants per character
 Config.MinPlantDistance    = 1.2     -- min distance between two plants
 Config.PlaceMaxDistance    = 6.0     -- how far from the player the gizmo can place
+
+-- custom props with no collision: an invisible blocker is spawned with them (and removed with them)
+Config.CollisionModel = 'p_emrfencepost02x'
+Config.CollisionProps = {
+    ['prop_weed_01'] = true,
+    ['prop_weed_02'] = true,
+}
 Config.InteractDistance    = 1.6     -- distance to tend a plant
 Config.RenderDistance      = 60.0    -- props spawn / despawn distance
 Config.OwnerOnlyHarvest    = true    -- only the planter can harvest / destroy
