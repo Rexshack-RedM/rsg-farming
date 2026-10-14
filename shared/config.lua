@@ -125,6 +125,15 @@ Config.Crops = {
         },
         harvest = { { item = 'sugarcane', min = 2, max = 4 }, { item = 'seedsugarcane', min = 0, max = 1 } },
     },
+    wheat = {
+        label = 'Wheat', seed = 'seedwheat', growTime = 60,
+        stages = {
+            { from = 0,   prop = 'crp_wheat_sap_long_aa_sim', zOffset = -0.3 },
+            { from = 50,  prop = 'crp_wheat_sap_long_ab_sim', zOffset = -0.5 },
+            { from = 100, prop = 'crp_wheat_dry_long_aa_sim', zOffset = -0.3 },
+        },
+        harvest = { { item = 'wheat', min = 2, max = 4 }, { item = 'seedwheat', min = 0, max = 1 } },
+    },
     weed = {
         label = 'Weed', seed = 'seedweed', growTime = 60,
         stages = {
