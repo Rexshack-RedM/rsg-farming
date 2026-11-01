@@ -1,11 +1,17 @@
 -- shared server helpers for rsg-farming (loaded before server.lua / wellpump.lua)
 local RSGCore = exports['rsg-core']:GetCoreObject()
-lib.locale()
 
 Utils = {}
 
+-- rsg-core callback that lets handlers `return ok, msg` like before
+function Utils.callback(name, fn)
+    RSGCore.Functions.CreateCallback(name, function(source, cb, ...)
+        cb(fn(source, ...))
+    end)
+end
+
 function Utils.notify(src, desc, ntype)
-    TriggerClientEvent('ox_lib:notify', src, {
+    TriggerClientEvent('RSGCore:Client:Notify', src, {
         title = locale('farming'), description = desc, type = ntype or 'inform', duration = 4000,
     })
 end
@@ -18,50 +24,63 @@ function Utils.distanceTo(src, x, y, z)
     return #(GetEntityCoords(GetPlayerPed(src)) - vector3(x, y, z))
 end
 
+local function finite(v) return v and v == v and v ~= math.huge and v ~= -math.huge end
+
 -- accepts a vector3/table from the client, rejects NaN/inf and non-numbers
 function Utils.toCoords(c)
-    if type(c) ~= 'vector3' and type(c) ~= 'table' then return nil end
+    local t = type(c)
+    if t ~= 'vector3' and t ~= 'table' then return nil end
     local x, y, z = tonumber(c.x), tonumber(c.y), tonumber(c.z)
-    for _, v in ipairs({ x, y, z }) do
-        if not v or v ~= v or v == math.huge or v == -math.huge then return nil end
-    end
+    if not (finite(x) and finite(y) and finite(z)) then return nil end
     return vector3(x, y, z)
 end
 
 function Utils.toHeading(h)
     h = tonumber(h)
-    if not h or h ~= h or h == math.huge or h == -math.huge then return 0.0 end
+    if not finite(h) then return 0.0 end
     return h % 360
 end
 
-function Utils.hasItem(Player, item)
-    local it = Player.Functions.GetItemByName(item)
-    return it ~= nil and (it.amount or 0) > 0
-end
-
-local function itemBox(src, item, mode, amount)
-    TriggerClientEvent('rsg-inventory:client:ItemBox', src, RSGCore.Shared.Items[item], mode, amount)
+function Utils.hasItem(src, item)
+    return (exports['rsg-inventory']:GetItemCount(src, item) or 0) > 0
 end
 
 function Utils.canAdd(src, item, amount)
     if not RSGCore.Shared.Items[item] then return false end
-    local ok, res = pcall(function() return exports['rsg-inventory']:CanAddItem(src, item, amount or 1) end)
-    return not ok or res ~= false
+    local ok, res = pcall(exports['rsg-inventory'].CanAddItem, exports['rsg-inventory'], src, item, amount or 1)
+    return ok and res ~= false
 end
 
+-- strict check that ALL items fit together (combined weight + free slots), not just one at a time
+-- list = { { item = 'corn', amount = 3 }, ... }
+function Utils.canAddAll(src, list)
+    local inv = exports['rsg-inventory']
+    local weight, slotsNeeded, seen = 0, 0, {}
+    for _, r in ipairs(list) do
+        local shared = RSGCore.Shared.Items[r.item]
+        if not shared or not Utils.canAdd(src, r.item, r.amount) then return false end
+        weight = weight + (tonumber(shared.weight) or 0) * r.amount
+        if shared.unique then
+            slotsNeeded = slotsNeeded + r.amount
+        elseif not seen[r.item] then
+            seen[r.item] = true
+            if (inv:GetItemCount(src, r.item) or 0) <= 0 then slotsNeeded = slotsNeeded + 1 end
+        end
+    end
+    if weight > (inv:GetFreeWeight(src) or 0) then return false end
+    local _, freeSlots = inv:GetSlots(src)
+    return slotsNeeded <= (freeSlots or 0)
+end
+
+-- rsg-inventory shows the ItemBox itself, so no manual ItemBox events here
 function Utils.removeItem(src, item, amount, slot, reason)
-    amount = amount or 1
-    if not exports['rsg-inventory']:RemoveItem(src, item, amount, slot, reason) then return false end
-    itemBox(src, item, 'remove', amount)
-    return true
+    return exports['rsg-inventory']:RemoveItem(src, item, amount or 1, slot, reason) and true or false
 end
 
-function Utils.addItem(src, item, amount, info, reason)
+function Utils.addItem(src, item, amount, info, reason, slot)
     amount = amount or 1
     if amount <= 0 or not Utils.canAdd(src, item, amount) then return false end
-    if not exports['rsg-inventory']:AddItem(src, item, amount, nil, info, reason) then return false end
-    itemBox(src, item, 'add', amount)
-    return true
+    return exports['rsg-inventory']:AddItem(src, item, amount, info, slot, reason) and true or false
 end
 
 ---------------------------------

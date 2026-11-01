@@ -1,5 +1,4 @@
 local RSGCore = exports['rsg-core']:GetCoreObject()
-lib.locale()
 
 local Plants   = {}   -- [id] = plant data from server
 local Spawned  = {}   -- [id] = { entity, stage, dead, zone }
@@ -110,14 +109,14 @@ local function despawn(id)
     local s = Spawned[id]
     if s then
         Utils.deleteProp(s.entity)
-        if s.zone then exports.ox_target:removeZone(s.zone) end
+        if s.zone then exports['rsg-target']:removeZone(s.zone) end
     end
     Spawned[id] = nil
 end
 
 local function addTarget(plant)
     if not Config.UseTarget then return nil end
-    return exports.ox_target:addSphereZone({
+    return exports['rsg-target']:addSphereZone({
         coords = vector3(plant.x, plant.y, plant.z + 0.5),
         radius = Config.TargetRadius,
         debug = Config.Debug,
@@ -169,18 +168,20 @@ RegisterNetEvent('rsg-farming:client:sync', applySync)
 
 RegisterNetEvent('RSGCore:Client:OnPlayerLoaded', function()
     MyCid = nil
-    applySync(lib.callback.await('rsg-farming:server:getPlants', false))
+    applySync(RSGCore.Functions.AwaitCallback('rsg-farming:server:getPlants', nil))
 end)
 
 RegisterNetEvent('RSGCore:Client:OnPlayerUnload', function()
     MyCid = nil
     closeUI()
     clearGps()
+    for id in pairs(Spawned) do despawn(id) end
+    Plants = {}
 end)
 
 CreateThread(function()
     Wait(1000)
-    applySync(lib.callback.await('rsg-farming:server:getPlants', false))
+    applySync(RSGCore.Functions.AwaitCallback('rsg-farming:server:getPlants', nil))
 end)
 
 ---------------------------------
@@ -210,7 +211,7 @@ CreateThread(function()
 end)
 
 ---------------------------------
--- [G] prompt interaction (only when ox_target is disabled)
+-- [G] prompt interaction (only when rsg-target is disabled)
 ---------------------------------
 if not Config.UseTarget then
     CreateThread(function()
@@ -231,15 +232,15 @@ if not Config.UseTarget then
 
             if nearest then
                 if shown ~= nearest then
-                    lib.showTextUI(locale('tend_plant', Config.Crops[Plants[nearest].crop].label))
+                    exports['rsg-core']:DrawText(locale('tend_plant', Config.Crops[Plants[nearest].crop].label), 'left')
                     shown = nearest
                 end
                 if IsControlJustReleased(0, Config.InteractKey) then
-                    lib.hideTextUI(); shown = false
+                    exports['rsg-core']:HideText(); shown = false
                     openUI(nearest)
                 end
             elseif shown then
-                lib.hideTextUI(); shown = false
+                exports['rsg-core']:HideText(); shown = false
             end
             Wait(sleep)
         end
@@ -264,7 +265,7 @@ local function runAction(name, id)
 
     local proceed = true
     if act.scenario then
-        local canDo, reason = lib.callback.await('rsg-farming:server:precheck', false, name, id)
+        local canDo, reason = RSGCore.Functions.AwaitCallback('rsg-farming:server:precheck', nil, name, id)
         if not canDo then
             Utils.notify(reason, 'error')
             Utils.busy = false
@@ -275,7 +276,7 @@ local function runAction(name, id)
     end
 
     if proceed then
-        local ok, msg = lib.callback.await(act.cb, false, id)
+        local ok, msg = RSGCore.Functions.AwaitCallback(act.cb, nil, id)
         Utils.notify(msg, ok and 'success' or 'error')
     else
         Utils.notify(locale('cancelled'), 'error')
@@ -303,7 +304,7 @@ RegisterNetEvent('rsg-farming:client:startPlacing', function(cropKey)
     if coords then
         Utils.face(coords.x, coords.y)
         if Utils.playScenario(Config.Scenarios.plant, Config.PlantTime, locale('planting')) then
-            local ok, msg = lib.callback.await('rsg-farming:server:plant', false, cropKey, coords, heading)
+            local ok, msg = RSGCore.Functions.AwaitCallback('rsg-farming:server:plant', nil, cropKey, coords, heading)
             Utils.notify(msg, ok and 'success' or 'error')
         else
             Utils.notify(locale('cancelled'), 'error')
@@ -369,7 +370,7 @@ end)
 -- my plants overview
 ---------------------------------
 RegisterCommand('myplants', function()
-    if Utils.busy then return end
+    if not Utils.canAct() then return end
     UIPlant = nil
     SetNuiFocus(true, true)
     SendNUIMessage({ action = 'list', plants = myPlantsPayload() })
@@ -379,6 +380,6 @@ AddEventHandler('onResourceStop', function(res)
     if res ~= GetCurrentResourceName() then return end
     for id in pairs(Spawned) do despawn(id) end
     SetNuiFocus(false, false)
-    lib.hideTextUI()
+    exports['rsg-core']:HideText()
     ClearGpsMultiRoute()
 end)

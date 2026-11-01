@@ -4,10 +4,10 @@ game 'rdr3'
 lua54 'yes'
 
 description 'rsg-farming'
-version '3.0.3'
+version '3.0.4'
 
 shared_scripts {
-    '@ox_lib/init.lua',
+    '@rsg-core/shared/locale.lua',
     'shared/config.lua',
 }
 
@@ -42,7 +42,6 @@ this_is_a_map 'yes'
 dependencies {
     'rsg-core',
     'rsg-inventory',
-    'ox_lib',
     'oxmysql',
-    'ox_target',
+    'rsg-target',
 }

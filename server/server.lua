@@ -1,5 +1,4 @@
 local RSGCore = exports['rsg-core']:GetCoreObject()
-lib.locale()
 
 local Plants = {}   -- [id] = plant
 local Dirty  = {}   -- [id] = true when needs saving
@@ -62,13 +61,13 @@ local Rules = {
     water = function(Player, plant)
         if plant.dead then return locale('plant_dead') end
         if plant.water >= 95 then return locale('already_full') end
-        if not Utils.hasItem(Player, Config.WaterItem) then return locale('no_water') end
+        if not Utils.hasItem(Player.PlayerData.source, Config.WaterItem) then return locale('no_water') end
     end,
     fertilize = function(Player, plant)
         if plant.dead then return locale('plant_dead') end
         if plant.growth >= 100 then return locale('fully_grown') end
         if plant.fertilizer >= 95 then return locale('already_full') end
-        if not Utils.hasItem(Player, Config.FertilizerItem) then return locale('no_fertilizer') end
+        if not Utils.hasItem(Player.PlayerData.source, Config.FertilizerItem) then return locale('no_fertilizer') end
     end,
     harvest = function(Player, plant)
         if Config.OwnerOnlyHarvest and plant.citizenid ~= Player.PlayerData.citizenid then return locale('not_owner') end
@@ -214,12 +213,12 @@ end
 ---------------------------------
 -- callbacks
 ---------------------------------
-lib.callback.register('rsg-farming:server:getPlants', function()
+Utils.callback('rsg-farming:server:getPlants', function(source)
     while not Loaded do Wait(100) end
     return buildSync()
 end)
 
-lib.callback.register('rsg-farming:server:plant', function(source, cropKey, coords, heading)
+Utils.callback('rsg-farming:server:plant', function(source, cropKey, coords, heading)
     local src = source
     local Player = Utils.getPlayer(src)
     local crop = Config.Crops[cropKey]
@@ -267,7 +266,7 @@ lib.callback.register('rsg-farming:server:plant', function(source, cropKey, coor
 end)
 
 -- pre-check: runs before the client plays the animation and starts the action timer
-lib.callback.register('rsg-farming:server:precheck', function(source, action, plantId)
+Utils.callback('rsg-farming:server:precheck', function(source, action, plantId)
     if not Rules[action] then return false, locale('action_invalid') end
     local Player, plant, err = validate(source, plantId)
     if not Player then return false, err end
@@ -277,12 +276,12 @@ lib.callback.register('rsg-farming:server:precheck', function(source, action, pl
     return true
 end)
 
-lib.callback.register('rsg-farming:server:water', function(source, plantId)
+Utils.callback('rsg-farming:server:water', function(source, plantId)
     local Player, plant, err = checkAction(source, 'water', plantId)
     if not Player then return false, err end
 
     -- a full bucket has limited uses, stored in item metadata
-    local bucket = Player.Functions.GetItemByName(Config.WaterItem)
+    local bucket = exports['rsg-inventory']:GetItemByName(source, Config.WaterItem)
     if not bucket then return false, locale('no_water') end
     local maxUses = Config.WellPump.bucketUses or 5
     local info = bucket.info or {}
@@ -292,13 +291,15 @@ lib.callback.register('rsg-farming:server:water', function(source, plantId)
         return false, locale('no_water')
     end
     if uses <= 1 then
-        if Config.WaterReturnItem then Utils.addItem(source, Config.WaterReturnItem, 1, nil, 'rsg-farming:water-empty') end
+        if Config.WaterReturnItem and not Utils.addItem(source, Config.WaterReturnItem, 1, nil, 'rsg-farming:water-empty') then
+            exports['rsg-inventory']:ForceDropItem(source, Config.WaterReturnItem, 1, nil, 'rsg-farming:water-empty')
+        end
     else
         local newInfo = {}
         for k, v in pairs(info) do newInfo[k] = v end
         newInfo.uses = uses - 1
         newInfo.description = locale('bucket_uses', newInfo.uses, maxUses)
-        exports['rsg-inventory']:AddItem(source, Config.WaterItem, 1, bucket.slot, newInfo, 'rsg-farming:water-use')
+        Utils.addItem(source, Config.WaterItem, 1, newInfo, 'rsg-farming:water-use', bucket.slot)
     end
 
     plant.water = clamp(plant.water + Config.WaterAmount, 0, 100)
@@ -307,7 +308,7 @@ lib.callback.register('rsg-farming:server:water', function(source, plantId)
     return true, locale('watered')
 end)
 
-lib.callback.register('rsg-farming:server:fertilize', function(source, plantId)
+Utils.callback('rsg-farming:server:fertilize', function(source, plantId)
     local Player, plant, err = checkAction(source, 'fertilize', plantId)
     if not Player then return false, err end
     if not Utils.removeItem(source, Config.FertilizerItem, 1, nil, 'rsg-farming:fertilize') then
@@ -320,7 +321,7 @@ lib.callback.register('rsg-farming:server:fertilize', function(source, plantId)
     return true, locale('fertilized')
 end)
 
-lib.callback.register('rsg-farming:server:harvest', function(source, plantId)
+Utils.callback('rsg-farming:server:harvest', function(source, plantId)
     local Player, plant, err = checkAction(source, 'harvest', plantId)
     if not Player then return false, err end
 
@@ -328,21 +329,22 @@ lib.callback.register('rsg-farming:server:harvest', function(source, plantId)
     local rewards = {}
     for _, r in ipairs(Config.Crops[plant.crop].harvest) do
         local amount = math.random(r.min, r.max)
-        if amount > 0 then
-            if not Utils.canAdd(source, r.item, amount) then return false, locale('inv_full') end
-            rewards[#rewards + 1] = { item = r.item, amount = amount }
-        end
+        if amount > 0 then rewards[#rewards + 1] = { item = r.item, amount = amount } end
     end
+    if not Utils.canAddAll(source, rewards) then return false, locale('inv_full') end
 
     deletePlant(plant.id) -- remove first to stop double-harvest
     syncAll()
     for _, r in ipairs(rewards) do
-        Utils.addItem(source, r.item, r.amount, nil, 'rsg-farming:harvest')
+        if not Utils.addItem(source, r.item, r.amount, nil, 'rsg-farming:harvest') then
+            -- satchel filled up between the check and now: drop it at their feet instead of losing it
+            exports['rsg-inventory']:ForceDropItem(source, r.item, r.amount, nil, 'rsg-farming:harvest-overflow')
+        end
     end
     return true, locale('harvested')
 end)
 
-lib.callback.register('rsg-farming:server:destroy', function(source, plantId)
+Utils.callback('rsg-farming:server:destroy', function(source, plantId)
     local Player, plant, err = validate(source, plantId)
     if not Player then return false, err end
     if plant.citizenid ~= Player.PlayerData.citizenid and not plant.dead then

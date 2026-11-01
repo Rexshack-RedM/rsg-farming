@@ -81,7 +81,7 @@ function Placement.Start(model, checkFn, invalidMsg)
 
     local heading, heightOffset = GetEntityHeading(ped), 0.0
     local result, resultHeading = nil, nil
-    lib.showTextUI(locale('place_help'), { position = 'left-center' })
+    exports['rsg-core']:DrawText(locale('place_help'), 'left')
 
     while true do
         Wait(0)
@@ -131,7 +131,7 @@ function Placement.Start(model, checkFn, invalidMsg)
         end
     end
 
-    lib.hideTextUI()
+    exports['rsg-core']:HideText()
     if DoesEntityExist(ghost) then DeleteObject(ghost) end
     return result, resultHeading
 end

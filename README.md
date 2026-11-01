@@ -1,6 +1,6 @@
 # rsg-farming
 
-Plant, water, fertilise and harvest crops anywhere in the world, with portable well pumps to fill your water buckets. Built for **RSG-Core (RedM)** with ox_lib, ox_target and oxmysql.
+Plant, water, fertilise and harvest crops anywhere in the world, with portable well pumps to fill your water buckets. Built for **RSG-Core (RedM)** with rsg-target and oxmysql. No ox_lib required.
 
 ---
 
@@ -16,8 +16,8 @@ Plant, water, fertilise and harvest crops anywhere in the world, with portable w
 - **Limited-use water buckets**: a full bucket waters a set number of times (default 5) before it becomes an empty bucket again. The uses left show in the item description.
 - **Ownership**: only the planter can harvest or remove a living plant (configurable). Anyone can clear dead plants.
 - **Saved to the database**: plants and pumps survive restarts, and dead plants are removed automatically.
-- **ox_target or key prompt**: tend plants through ox_target zones or a `[G]` prompt.
-- **Fully localised**: every player-facing string, including the UI, is in `locales/en.json`.
+- **rsg-target or key prompt**: tend plants through rsg-target zones or a `[G]` prompt.
+- **Fully localised**: every player-facing string, including the UI, ships in 10 languages (en, de, el, es, fr, ja, nl, pl, pt-br, ro).
 - **Exploit-hardened**: all item changes happen on the server with distance, ownership and inventory-space checks, plus server-side action timers that stop players skipping animations.
 - **Optimised**: props are streamed by distance, and the database saves in batches.
 
@@ -29,8 +29,7 @@ Plant, water, fertilise and harvest crops anywhere in the world, with portable w
 |---|---|
 | [rsg-core](https://github.com/Rexshack-RedM/rsg-core) | framework |
 | [rsg-inventory](https://github.com/Rexshack-RedM/rsg-inventory) | item handling |
-| [ox_lib](https://github.com/Rexshack-RedM/ox_lib) | callbacks, notify, progress bars, locales |
-| [ox_target](https://github.com/Rexshack-RedM/ox_target) | interaction (optional if `Config.UseTarget = false`) |
+| [rsg-target](https://github.com/Rexshack-RedM/rsg-target) | interaction (plant zones + well pumps) |
 | [oxmysql](https://github.com/Rexshack-RedM/oxmysql) | database |
 
 ---
@@ -41,10 +40,9 @@ Plant, water, fertilise and harvest crops anywhere in the world, with portable w
 2. Add it to `server.cfg` **after** its dependencies:
    ```cfg
    ensure oxmysql
-   ensure ox_lib
    ensure rsg-core
    ensure rsg-inventory
-   ensure ox_target
+   ensure rsg-target
    ensure rsg-farming
    ```
 3. **Database**: nothing to import. The tables `rsg_farming_plants` and `rsg_farming_wellpumps` are created automatically on first start.
@@ -61,6 +59,9 @@ seedcarrot  = { name = 'seedcarrot',  label = 'Carrot Seeds',  weight = 10, type
 seedtomato  = { name = 'seedtomato',  label = 'Tomato Seeds',  weight = 10, type = 'item', image = 'seedtomato.png',  unique = false, useable = true, shouldClose = true, description = 'Plant to grow tomatoes' },
 seedpotato  = { name = 'seedpotato',  label = 'Potato Seeds',  weight = 10, type = 'item', image = 'seedpotato.png',  unique = false, useable = true, shouldClose = true, description = 'Plant to grow potatoes' },
 seedtobacco = { name = 'seedtobacco', label = 'Tobacco Seeds', weight = 10, type = 'item', image = 'seedtobacco.png', unique = false, useable = true, shouldClose = true, description = 'Plant to grow tobacco' },
+seedcotton    = { name = 'seedcotton',    label = 'Cotton Seeds',    weight = 10, type = 'item', image = 'seedcotton.png',    unique = false, useable = true, shouldClose = true, description = 'Plant to grow cotton' },
+seedsugarcane = { name = 'seedsugarcane', label = 'Sugarcane Seeds', weight = 10, type = 'item', image = 'seedsugarcane.png', unique = false, useable = true, shouldClose = true, description = 'Plant to grow sugarcane' },
+seedwheat     = { name = 'seedwheat',     label = 'Wheat Seeds',     weight = 10, type = 'item', image = 'seedwheat.png',     unique = false, useable = true, shouldClose = true, description = 'Plant to grow wheat' },
 seedweed    = { name = 'seedweed',    label = 'Weed Seeds',    weight = 10, type = 'item', image = 'seedweed.png',    unique = false, useable = true, shouldClose = true, description = 'Plant to grow weed' },
 
 -- produce
@@ -69,6 +70,9 @@ carrot  = { name = 'carrot',  label = 'Carrot',   weight = 100, type = 'item', i
 tomato  = { name = 'tomato',  label = 'Tomato',   weight = 100, type = 'item', image = 'tomato.png',  unique = false, useable = false, shouldClose = true, description = 'Fresh tomato' },
 potato  = { name = 'potato',  label = 'Potato',   weight = 100, type = 'item', image = 'potato.png',  unique = false, useable = false, shouldClose = true, description = 'Fresh potato' },
 tobacco = { name = 'tobacco', label = 'Tobacco',  weight = 100, type = 'item', image = 'tobacco.png', unique = false, useable = false, shouldClose = true, description = 'Tobacco leaves' },
+cotton    = { name = 'cotton',    label = 'Cotton',    weight = 100, type = 'item', image = 'cotton.png',    unique = false, useable = false, shouldClose = true, description = 'Raw cotton' },
+sugarcane = { name = 'sugarcane', label = 'Sugarcane', weight = 100, type = 'item', image = 'sugarcane.png', unique = false, useable = false, shouldClose = true, description = 'Fresh sugarcane' },
+wheat     = { name = 'wheat',     label = 'Wheat',     weight = 100, type = 'item', image = 'wheat.png',     unique = false, useable = false, shouldClose = true, description = 'Harvested wheat' },
 weed    = { name = 'weed',    label = 'Weed',     weight = 100, type = 'item', image = 'weed.png',    unique = false, useable = false, shouldClose = true, description = 'Dried weed' },
 
 -- tending
@@ -99,11 +103,11 @@ tool_wellpump = { name = 'tool_wellpump', label = 'Well Pump',   weight = 5000, 
 4. Your character plants the seeds and one seed is used.
 
 ### Tending
-- Walk up to a plant and use **ox_target** (`Tend <crop>`), or press **[G]** if target is disabled.
+- Walk up to a plant and use **rsg-target** (`Tend <crop>`), or press **[G]** if target is disabled.
 - The panel shows growth, water, fertiliser and health, plus the time left until harvest.
 - **Water**: needs a `fullbucket`. Each watering uses one charge, and the last charge gives you an empty `bucket` back.
 - **Fertilise**: needs `fertilizer`. Speeds up growth while it lasts.
-- **Harvest**: available at 100% growth. You get produce and a chance of a seed back. If your satchel is full, the plant stays in the ground.
+- **Harvest**: available at 100% growth. You get produce and a chance of a seed back. If your satchel is full, the plant stays in the ground (anything that no longer fits mid-harvest is dropped at your feet rather than lost).
 - **Remove**: digs up your own plant, or clears anyone's dead plant.
 
 A plant only grows while it has water. When it runs dry, it loses health and eventually dies. Dead plants disappear on their own after `Config.DeadPlantRemoveTime` minutes.
@@ -117,7 +121,7 @@ A plant only grows while it has water. When it runs dry, it loses health and eve
 
 | Command | Description |
 |---|---|
-| `/myplants` | Opens the overview of all your crops. Click a nearby plant to tend it, or a far one to set a map route. |
+| `/myplants` | Opens the overview of all your crops (not while mounted, in a vehicle or busy). Click a nearby plant to tend it, or a far one to set a map route. |
 
 ---
 
@@ -136,10 +140,10 @@ All settings are in `shared/config.lua`.
 | `Config.InteractDistance` | `1.6` | Distance needed to tend a plant (m) |
 | `Config.RenderDistance` | `60.0` | Distance at which props spawn and despawn (m) |
 | `Config.OwnerOnlyHarvest` | `true` | Only the planter can harvest |
-| `Config.UseTarget` | `true` | `true` = ox_target, `false` = `[G]` prompt |
+| `Config.UseTarget` | `true` | `true` = rsg-target, `false` = `[G]` prompt |
 | `Config.InteractKey` | `0x760A9C6F` | Prompt key (G), used only when `UseTarget = false` |
 | `Config.TargetRadius` | `0.8` | Target sphere size around each plant |
-| `Config.TargetIcon` | `fa-solid fa-seedling` | ox_target icon |
+| `Config.TargetIcon` | `fa-solid fa-seedling` | rsg-target icon |
 
 ### Growth simulation
 
@@ -211,13 +215,13 @@ Seed items are registered as usable automatically, so there's no extra code to w
 
 ## Localisation
 
-All text, including the UI, is in `locales/en.json`. To translate:
+All text, including the UI, is in `locales/`. Included languages: `en`, `de`, `el`, `es`, `fr`, `ja`, `nl`, `pl`, `pt-br`, `ro`. Locales are loaded by rsg-core.
 
-1. Copy `en.json` to, for example, `fr.json` and translate the values. Keep the keys and the `%s` placeholders.
-2. Set the language in your server config:
-   ```cfg
-   setr ox:locale fr
-   ```
+Set the language in your server config:
+```cfg
+setr rsg:locale fr
+```
+To add a language, copy `en.json`, translate the values and keep the keys and `%s` placeholders.
 
 ---
 
@@ -242,7 +246,7 @@ rsg-farming/
 │   ├── wellpump.lua    -- well pumps
 │   └── versionchecker.lua
 ├── shared/config.lua
-├── locales/en.json
+├── locales/           -- en, de, el, es, fr, ja, nl, pl, pt-br, ro
 ├── html/               -- NUI (index.html, style.css, script.js)
 ├── stream/             -- custom weed props
 └── fxmanifest.lua
@@ -250,6 +254,22 @@ rsg-farming/
 
 ---
 
+## Changelog
+
+### 3.0.4
+- Removed the ox_lib dependency: locales, notify, callbacks, progress bars and text UI now use rsg-core.
+- Switched from ox_target to rsg-target.
+- Fixed duplicate item pop-ups (rsg-inventory already shows them).
+- Fixed refilled water buckets using the legacy `AddItem` argument order.
+- Harvest now checks that all rewards fit together (combined weight and free slots) before the plant is removed.
+- Harvest / empty-bucket items that no longer fit are dropped instead of lost.
+- Plants and pumps are despawned on character logout; `/myplants` blocked while mounted or busy.
+- Added de, el, es, fr, ja, nl, pl, pt-br and ro locales.
+
+---
+
 ## Credits
 
 Rexshack-RedM: RSG Framework (RexShack)
+
+Support: https://buymeacoffee.com/rexshack

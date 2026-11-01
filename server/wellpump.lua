@@ -1,5 +1,4 @@
 local RSGCore = exports['rsg-core']:GetCoreObject()
-lib.locale()
 
 local WP       = Config.WellPump
 local Pumps    = {}   -- [id] = { id, citizenid, x, y, z, h }
@@ -39,7 +38,7 @@ end
 ---------------------------------
 local Rules = {
     fill = function(src, Player)
-        if not Utils.hasItem(Player, WP.emptyItem) then return locale('pump_no_bucket') end
+        if not Utils.hasItem(src, WP.emptyItem) then return locale('pump_no_bucket') end
         if not Utils.canAdd(src, WP.fullItem, 1) then return locale('inv_full') end
     end,
     pack = function(src, Player, pump)
@@ -81,7 +80,7 @@ CreateThread(function()
     syncAll()
 end)
 
-lib.callback.register('rsg-farming:server:getPumps', function()
+Utils.callback('rsg-farming:server:getPumps', function(source)
     while not Loaded do Wait(100) end
     return list()
 end)
@@ -101,7 +100,7 @@ end)
 ---------------------------------
 -- place
 ---------------------------------
-lib.callback.register('rsg-farming:server:placePump', function(source, coords, heading)
+Utils.callback('rsg-farming:server:placePump', function(source, coords, heading)
     local src = source
     local Player = Utils.getPlayer(src)
     coords = Utils.toCoords(coords)
@@ -139,7 +138,7 @@ end)
 ---------------------------------
 -- pre-check (starts the action timer)
 ---------------------------------
-lib.callback.register('rsg-farming:server:pumpPrecheck', function(source, action, pumpId)
+Utils.callback('rsg-farming:server:pumpPrecheck', function(source, action, pumpId)
     if not Rules[action] then return false, locale('action_invalid') end
     local Player, pump, err = validate(source, pumpId)
     if not Player then return false, err end
@@ -152,7 +151,7 @@ end)
 ---------------------------------
 -- fill bucket
 ---------------------------------
-lib.callback.register('rsg-farming:server:fillBucket', function(source, pumpId)
+Utils.callback('rsg-farming:server:fillBucket', function(source, pumpId)
     local Player, _, err = checkAction(source, 'fill', pumpId)
     if not Player then return false, err end
     if not Utils.removeItem(source, WP.emptyItem, 1, nil, 'rsg-farming:fill') then return false, locale('pump_no_bucket') end
@@ -168,7 +167,7 @@ end)
 ---------------------------------
 -- pack up
 ---------------------------------
-lib.callback.register('rsg-farming:server:packPump', function(source, pumpId)
+Utils.callback('rsg-farming:server:packPump', function(source, pumpId)
     local Player, pump, err = checkAction(source, 'pack', pumpId)
     if not Player then return false, err end
 

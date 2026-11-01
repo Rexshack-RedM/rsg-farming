@@ -18,7 +18,7 @@ Config.InteractDistance    = 1.6     -- distance to tend a plant
 Config.RenderDistance      = 60.0    -- props spawn / despawn distance
 Config.OwnerOnlyHarvest    = true    -- only the planter can harvest / destroy
 Config.InteractKey         = 0x760A9C6F -- [G] (only used when UseTarget = false)
-Config.UseTarget           = true    -- use ox_target zones on plants instead of the [G] prompt
+Config.UseTarget           = true    -- use rsg-target zones on plants instead of the [G] prompt
 Config.TargetRadius        = 0.8     -- sphere zone radius around each plant
 Config.TargetIcon          = 'fa-solid fa-seedling'
 

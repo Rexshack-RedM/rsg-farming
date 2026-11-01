@@ -1,5 +1,5 @@
 -- shared client helpers for rsg-farming (loaded first)
-lib.locale()
+local RSGCore = exports['rsg-core']:GetCoreObject()
 
 Utils = {
     busy     = false, -- one global busy flag so planting / pumps / tending can't overlap
@@ -9,7 +9,7 @@ Utils = {
 
 function Utils.notify(desc, ntype)
     if not desc then return end
-    lib.notify({ title = locale('farming'), description = desc, type = ntype or 'inform', duration = 4000 })
+    RSGCore.Functions.Notify({ title = locale('farming'), description = desc, type = ntype or 'inform', duration = 4000 })
 end
 
 function Utils.canAct()
@@ -52,9 +52,9 @@ function Utils.playScenario(scenario, duration, label)
     local ped = PlayerPedId()
     local before = snapshotObjects()
     TaskStartScenarioInPlaceHash(ped, joaat(scenario), -1, true, false, false, false)
-    local ok = lib.progressBar({
+    local ok = RSGCore.Functions.ProgressBar({
         duration = duration, label = label, useWhileDead = false, canCancel = true,
-        disable = { move = true, combat = true, car = true, mount = true },
+        disable = { move = true, combat = true, mount = true },
     })
     ClearPedTasks(ped, true, true)
     Wait(1500) -- let the exit anim finish / drop the prop
