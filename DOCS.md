@@ -109,4 +109,4 @@ The server owns growth, water, fertiliser and health, checks ownership, distance
 | Weed props invisible | Keep the `stream/` folder with the resource |
 | Pump won't place | Check `maxPerPlayer` and `minDistance` |
 
-Support: https://buymeacoffee.com/rexshack
+Support the Project : https://rexshack.tebex.store/
