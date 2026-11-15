@@ -175,7 +175,7 @@ Config.Crops = {
             { from = 50,  prop = 'crp_tobaccoplant_ac_sim', zOffset = -0.5 },
             { from = 100, prop = 'crp_tobaccoplant_ac_sim', zOffset = 0.0 },
         },
-        harvest = { { item = 'tobacco', min = 2, max = 4 }, { item = 'seedtobacco', min = 0, max = 1 } },
+        harvest = { { item = 'tobacco_leaf', min = 2, max = 4 }, { item = 'seedtobacco', min = 0, max = 1 } },
     },
     cotton = {
         label = 'Cotton', seed = 'seedcotton', growTime = 60,
