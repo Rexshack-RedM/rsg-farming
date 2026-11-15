@@ -98,7 +98,8 @@ end
 -- farming xp / levels (stored in player metadata)
 ---------------------------------
 local function xpOf(Player)
-    return tonumber(Player.Functions.GetMetaData('farmingxp')) or 0
+    local v = Player.Functions.GetMetaData('farmingxp')
+    return tonumber(v) or 0
 end
 
 local function levelOf(xp)
