@@ -134,4 +134,13 @@ The server owns growth, water, fertiliser and health, checks ownership, distance
 | Can't plant in a town | A `Config.NoPlantZones` entry covers it |
 | Water bucket always has 5 uses | Make `fullbucket` a `unique = true` item so its remaining uses are kept per bucket |
 
+## rsg-skills integration
+
+`Config.Skills = { Enabled, Skill, XPScale, LevelsPerExtraPlant }`. A local `useSkills()` is true when enabled and `GetResourceState('rsg-skills') == 'started'`; the check is made on each call, so a restart of rsg-skills switches modes live.
+- `addXP` calls `exports['rsg-skills']:AddXP(src, 'farming', amount * XPScale, 'farming')` and returns early (no metadata XP, no built-in level-up notification).
+- `perkOf` returns `bonusYieldChance = GetPerk(src, 'farming', 'extra_yield')` and `extraPlants = floor((level - 1) / LevelsPerExtraPlant)`, which feed the harvest roll and `maxPlantsFor`.
+- `/farmlevel` uses `GetProgress` and the locale keys `level_info_skills` and `level_info_skills_next` (added to all locale files).
+- The `speed_bonus` perk is not used by this script.
+
+
 Support the Project : https://rexshack.tebex.store/
